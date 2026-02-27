@@ -5,72 +5,179 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings — GST Recon Engine</title>
-    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body>
     <div class="app-layout">
         <aside class="sidebar" id="sidebar"></aside>
+
         <main class="main-content">
             <header style="margin-bottom:40px">
-                <h1 style="margin:0">Settings</h1>
-                <p style="color:var(--text-dim)">Global configuration and system status</p>
+                <h1 style="margin:0">System Configuration</h1>
+                <p style="color:var(--text-dim)">Global parameters and engine optimization</p>
             </header>
 
             <div style="max-width:600px">
-                <div class="card" style="margin-bottom:20px">
-                    <h3>General Info</h3>
+                <div class="card" style="margin-bottom:25px">
+                    <h3
+                        style="margin-top:0; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:15px; margin-bottom:20px;">
+                        User Profile</h3>
+                    <form id="profile-form">
+                        <div style="margin-bottom: 20px;">
+                            <label style="display:block;margin-bottom:8px;color:var(--text-dim);font-size:14px;">Full
+                                Name</label>
+                            <input type="text" id="profile-name" required
+                                style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:white;border-radius:8px;font-family:'Outfit'">
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            <label style="display:block;margin-bottom:8px;color:var(--text-dim);font-size:14px;">Email
+                                Address (Read-only)</label>
+                            <input type="email" id="profile-email" readonly
+                                style="width:100%;padding:12px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);color:rgba(255,255,255,0.5);border-radius:8px;font-family:'Outfit';cursor:not-allowed;">
+                        </div>
+                        <div style="margin-bottom: 25px;">
+                            <label style="display:block;margin-bottom:8px;color:var(--text-dim);font-size:14px;">GST
+                                Number</label>
+                            <input type="text" id="profile-gst"
+                                style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:white;border-radius:8px;font-family:'Outfit'">
+                        </div>
+                        <div id="profile-msg" style="font-size:13px;margin-bottom:15px;display:none;"></div>
+                        <button type="submit" class="btn" id="save-profile-btn" style="width:100%">UPDATE
+                            PROFILE</button>
+                    </form>
+                </div>
+                <div class="card" style="margin-bottom:25px">
+                    <h3
+                        style="margin-top:0; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:15px; margin-bottom:20px;">
+                        Identity & Access</h3>
                     <div
-                        style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-                        <span>Tenant Name</span>
+                        style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.02)">
+                        <span style="color:var(--text-dim)">Tenant Identifier</span>
                         <strong id="set-tenant">...</strong>
                     </div>
-                    <div style="display:flex;justify-content:space-between;padding:10px 0">
-                        <span>Base Region</span>
+                    <div style="display:flex;justify-content:space-between;padding:12px 0">
+                        <span style="color:var(--text-dim)">Cloud Deployment Region</span>
                         <strong id="set-region">...</strong>
                     </div>
                 </div>
 
                 <div class="card">
-                    <h3>System Controls</h3>
+                    <h3
+                        style="margin-top:0; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:15px; margin-bottom:20px;">
+                        Autonomous Execution</h3>
                     <div style="margin-bottom:20px">
-                        <label style="display:block;margin-bottom:10px">Auto-Scan Frequency</label>
-                        <select class="btn" style="width:100%;text-align:left;background:rgba(255,255,255,0.05)">
-                            <option>Daily (Default)</option>
-                            <option>Weekly</option>
-                            <option>Real-time</option>
+                        <label style="display:block;margin-bottom:10px; font-size:13px; color:var(--text-dim)">Auto-Scan
+                            Frequency</label>
+                        <select class="btn"
+                            style="width:100%;text-align:left;background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05);">
+                            <option>Daily Batch Processing (Targeted)</option>
+                            <option>Weekly Compliance Audit</option>
+                            <option>Real-time Stream reconciliation</option>
                         </select>
                     </div>
-                    <div style="display:flex;justify-content:space-between;align-items:center">
+                    <div
+                        style="display:flex;justify-content:space-between;align-items:center; background:rgba(16, 185, 129, 0.03); padding:15px; border-radius:12px; border:1px solid rgba(16, 185, 129, 0.1);">
                         <div>
-                            <strong>Engine Status</strong>
-                            <p style="font-size:12px;color:var(--text-dim);margin:0">AI Risk detection is active</p>
+                            <strong style="color:var(--success)">Risk Engine Status</strong>
+                            <p style="font-size:12px;color:var(--text-dim);margin:5px 0 0 0">Neural audit protocols
+                                active</p>
                         </div>
-                        <span class="badge badge-success">ONLINE</span>
+                        <span class="badge badge-success">STABLE</span>
                     </div>
                 </div>
             </div>
         </main>
+
+        <aside class="right-bar">
+            <h3 style="font-size:14px; color:var(--text-dim); margin-bottom:20px; letter-spacing:1px;">INFRASTRUCTURE
+            </h3>
+            <div class="card" style="padding:15px; margin-bottom:15px; background:rgba(255,255,255,0.02);">
+                <div style="font-size:11px; color:var(--text-dim); margin-bottom:5px;">DATABASE LATENCY</div>
+                <div style="font-size:18px; font-weight:700;">14ms</div>
+            </div>
+            <div class="card" style="padding:15px; margin-bottom:15px; background:rgba(255,255,255,0.02);">
+                <div style="font-size:11px; color:var(--text-dim); margin-bottom:5px;">SECURE TUNNEL</div>
+                <div style="font-size:18px; font-weight:700; color:var(--success);">AES-256</div>
+            </div>
+            <div style="flex:1"></div>
+            <div style="padding:15px; background:rgba(255,255,255,0.02); border-radius:12px; text-align:center;">
+                <div style="font-size:10px; color:var(--text-dim); margin-bottom:5px;">SYSTEM VERSION</div>
+                <div style="font-size:12px; font-weight:600; color:var(--accent-light);">v2.4.0 (Stable Build)</div>
+            </div>
+        </aside>
     </div>
 
-    <script src="/js/api.js"></script>
-    <script src="/js/shared.js"></script>
-    <script>
-        initSidebar('settings');
+    <script type="module">
+        import { api, requireAuth } from './js/api.js';
+        import { initSidebar, initHeader } from './js/shared.js';
 
-        async function loadSettingsData() {
+        async function start() {
+            console.log('Opening System Settings...');
+            const authenticated = await requireAuth();
+            if (!authenticated) return;
+
+            initSidebar('settings');
+            initHeader(api);
+
+            // Handle logout
+            document.addEventListener('click', (e) => {
+                if (e.target && e.target.id === 'logout-btn') api.logout();
+            });
+
+            await loadSettings();
+            await loadProfile();
+
+            document.getElementById('profile-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById('save-profile-btn');
+                const msg = document.getElementById('profile-msg');
+
+                btn.textContent = 'UPDATING...';
+                btn.disabled = true;
+                msg.style.display = 'none';
+
+                try {
+                    await api.updateProfile({
+                        name: document.getElementById('profile-name').value,
+                        gst_number: document.getElementById('profile-gst').value
+                    });
+                    msg.textContent = 'Profile updated successfully!';
+                    msg.style.color = 'var(--success)';
+                    msg.style.display = 'block';
+                } catch (error) {
+                    msg.textContent = error.message;
+                    msg.style.color = 'var(--danger)';
+                    msg.style.display = 'block';
+                } finally {
+                    btn.textContent = 'UPDATE PROFILE';
+                    btn.disabled = false;
+                }
+            });
+        }
+
+        async function loadProfile() {
             try {
-                const systemConfig = await api.getSettings();
-
-                document.getElementById('set-tenant').textContent = systemConfig.tenant;
-                document.getElementById('set-region').textContent = systemConfig.region;
-
-            } catch (error) {
-                console.error("Failed to load system defaults:", error);
+                const profile = await api.getProfile();
+                document.getElementById('profile-name').value = profile.name || '';
+                document.getElementById('profile-email').value = profile.email || '';
+                document.getElementById('profile-gst').value = profile.gst_number || '';
+            } catch (err) {
+                console.error('Profile Load Error:', err);
             }
         }
 
-        loadSettingsData();
+        async function loadSettings() {
+            try {
+                const config = await api.getSettings();
+                document.getElementById('set-tenant').textContent = config.tenant || 'Not Set';
+                document.getElementById('set-region').textContent = config.region || 'Unknown';
+            } catch (err) {
+                console.error('Settings Load Error:', err);
+            }
+        }
+
+        start();
     </script>
 </body>
 

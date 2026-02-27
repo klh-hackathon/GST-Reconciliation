@@ -4,112 +4,269 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analytics — GST Recon Engine</title>
-    <link rel="stylesheet" href="/css/styles.css">
+    <title>Deep Analytics — GST Recon Engine</title>
+    <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <style>
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .analytics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .insight-card {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-top: 15px;
+        }
+    </style>
 </head>
 
 <body>
     <div class="app-layout">
         <aside class="sidebar" id="sidebar"></aside>
+
         <main class="main-content">
-            <header style="margin-bottom:40px">
-                <h1 style="margin:0">System Analytics</h1>
-                <p style="color:var(--text-dim)">Trend Analysis and Cognitive Risk Insights</p>
+            <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:40px">
+                <div>
+                    <h1 style="margin:0;font-size:32px;letter-spacing:-1px">Strategic Insights</h1>
+                    <p style="color:var(--text-dim);margin:5px 0 0 0">Advanced data visualization for tax intelligence
+                    </p>
+                </div>
+                <div style="display:flex;gap:12px">
+                    <button class="btn"
+                        style="background:rgba(255,255,255,0.05);box-shadow:none;border:1px solid rgba(255,255,255,0.1)"
+                        onclick="location.reload()">REFRESH DATA</button>
+                    <button class="btn" onclick="window.print()">EXPORT REPORT</button>
+                </div>
             </header>
 
-            <div class="grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:30px">
+            <div id="loading-mask" style="text-align:center; padding: 100px 50px; color: var(--accent-light);">
+                <div style="font-size:40px; margin-bottom:20px;">🔄</div>
+                <p style="font-size:18px; font-weight:500;">Synthesizing Intelligence Models...</p>
+                <p style="color:var(--text-dim); font-size:14px; margin-top:10px;">Compiling tax distribution and trend
+                    vectors</p>
+            </div>
+
+            <div class="analytics-grid" id="main-grid" style="display:none">
+                <!-- Trend Analysis -->
                 <div class="card">
-                    <h3>Risk Trend (Last 5 Months)</h3>
-                    <div style="height:350px">
-                        <canvas id="analytics-chart"></canvas>
+                    <h3 style="margin-top:0;display:flex;justify-content:space-between">
+                        Revenue Trends <span style="font-size:12px;color:var(--success)">Jan 2026 Status</span>
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="trendChart"></canvas>
                     </div>
                 </div>
+
+                <!-- Tax Breakdown (Pie) -->
                 <div class="card">
-                    <h3>Risk Category Distribution</h3>
-                    <div style="height:350px;display:flex;align-items:center;justify-content:center">
-                        <canvas id="pie-chart"></canvas>
+                    <h3 style="margin-top:0">Receipts Breakdown (₹ Cr)</h3>
+                    <div class="chart-container">
+                        <canvas id="taxPieChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Mismatch Categories (Bar) -->
+                <div class="card">
+                    <h3 style="margin-top:0">Expenditure Breakdown (₹ Cr)</h3>
+                    <div class="chart-container">
+                        <canvas id="mismatchBarChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Vendor Health (Doughnut) -->
+                <div class="card">
+                    <h3 style="margin-top:0">Budget Target Achievement (%)</h3>
+                    <div class="chart-container">
+                        <canvas id="vendorHealthChart"></canvas>
                     </div>
                 </div>
             </div>
 
-            <div class="card" style="margin-top:30px">
-                <h3>Anomaly Detection History</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Month</th>
-                            <th>Anomalies detected</th>
-                            <th>Confidence</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>February</td>
-                            <td>42</td>
-                            <td><span class="badge badge-success">High</span></td>
-                        </tr>
-                        <tr>
-                            <td>January</td>
-                            <td>38</td>
-                            <td><span class="badge badge-warning">Medium</span></td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div id="analytics-insight" class="insight-card" style="margin-top:30px; display:none;">
+                <h4 style="margin:0;color:var(--accent-light)">AI Intelligence Summary</h4>
+                <p style="font-size:14px;line-height:1.6;color:var(--text-dim); margin-top:10px;">
+                    Your overall compliance score has improved by **4.2%** this month. Key risk identified in
+                    <span style="color:var(--danger)">IGST Input Tax Credit</span> from the South region.
+                    Recommended action: Audit vendors with 'High Risk' status before the next filing cycle.
+                </p>
+            </div>
+
+            <div id="error-display"
+                style="display:none; color: var(--danger); background: rgba(244, 63, 94, 0.1); padding: 20px; border-radius: 12px; margin-top: 20px; border: 1px solid var(--danger);">
+                <p style="margin: 0"><strong>Analytical Failure:</strong> <span id="error-text"></span></p>
             </div>
         </main>
+
+        <aside class="right-bar">
+            <h3 style="font-size:14px; color:var(--text-dim); margin-bottom:20px; letter-spacing:1px;">MODEL METRICS
+            </h3>
+            <div class="card"
+                style="padding:15px; margin-bottom:15px; background:rgba(99, 102, 241, 0.05); border-color:rgba(99, 102, 241, 0.2);">
+                <div style="font-size:11px; color:var(--accent-light); font-weight:700; margin-bottom:5px;">AI
+                    CONFIDENCE</div>
+                <div style="font-size:18px; font-weight:700;">94.2%</div>
+            </div>
+
+            <div class="card" style="padding:15px; margin-bottom:15px; background:rgba(255, 255, 255, 0.02);">
+                <div style="font-size:11px; color:var(--text-dim); margin-bottom:8px;">DATA COVERAGE</div>
+                <div
+                    style="height:4px; background:rgba(255,255,255,0.05); border-radius:2px; overflow:hidden; margin-bottom:8px;">
+                    <div style="width:88%; height:100%; background:var(--accent-light);"></div>
+                </div>
+                <div style="font-size:10px; color:var(--text-dim); text-align:right;">88% Internalized</div>
+            </div>
+
+            <div style="flex:1"></div>
+
+            <div
+                style="padding:15px; background:rgba(255,255,255,0.02); border-radius:12px; border:1px solid rgba(255,255,255,0.05); font-size:12px;">
+                <p style="margin:0 0 10px 0; color:var(--text-dim);">LAST AUDIT</p>
+                <p style="margin:0; font-weight:600;">Feb 27, 2026</p>
+            </div>
+        </aside>
     </div>
 
-    <script src="/js/api.js"></script>
-    <script src="/js/shared.js"></script>
-    <script>
-        initSidebar('analytics');
+    <script type="module">
+        import { api, requireAuth } from './js/api.js';
+        import { initSidebar, initHeader } from './js/shared.js';
 
-        async function renderAnalytics() {
+        async function start() {
+            console.log('Starting Analytics Engine...');
+            const authenticated = await requireAuth();
+            if (!authenticated) return;
+
+            initSidebar('analytics');
+            initHeader(api);
+
+            // Handle logout
+            document.addEventListener('click', (e) => {
+                if (e.target && e.target.id === 'logout-btn') api.logout();
+            });
+
+            await loadAnalytics();
+        }
+
+        async function loadAnalytics() {
+            const chartConfig = {
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Outfit', size: 11 } } }
+                },
+                responsive: true,
+                maintainAspectRatio: false,
+            };
+
             try {
-                const analyticsData = await api.getAnalytics();
+                const data = await api.getAnalytics();
+                console.log('Analytics Data:', data);
 
-                const barChartContext = document.getElementById('analytics-chart').getContext('2d');
-                new Chart(barChartContext, {
-                    type: 'bar',
+                if (!data || !data.monthlyTrends) throw new Error('Incomplete data received');
+
+                document.getElementById('loading-mask').style.display = 'none';
+                document.getElementById('main-grid').style.display = 'grid';
+                document.getElementById('analytics-insight').style.display = 'block';
+
+                // 1. Line Chart
+                new Chart(document.getElementById('trendChart'), {
+                    type: 'line',
                     data: {
-                        labels: analyticsData.labels,
-                        datasets: [{
-                            label: 'Risk Anomalies',
-                            data: analyticsData.values,
-                            backgroundColor: '#6366f1',
-                            borderRadius: 8
-                        }]
+                        labels: data.monthlyTrends.labels,
+                        datasets: [
+                            {
+                                label: 'Tax Revenue (₹ Cr)',
+                                data: data.monthlyTrends.taxCollected,
+                                borderColor: '#6366f1',
+                                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            },
+                            {
+                                label: 'Non-Tax Revenue (₹ Cr)',
+                                data: data.monthlyTrends.taxSaved,
+                                borderColor: '#10b981',
+                                borderDash: [5, 5],
+                                tension: 0.4
+                            }
+                        ]
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false
-                    }
+                    options: chartConfig
                 });
 
-                const pieChartContext = document.getElementById('pie-chart').getContext('2d');
-                new Chart(pieChartContext, {
-                    type: 'doughnut',
+                // 2. Pie Chart
+                new Chart(document.getElementById('taxPieChart'), {
+                    type: 'pie',
                     data: {
-                        labels: ['Mismatched', 'Missing', 'Verified'],
+                        labels: data.taxBreakdown.labels,
                         datasets: [{
-                            data: [15, 10, 75],
-                            backgroundColor: ['#f43f5e', '#f59e0b', '#10b981'],
+                            data: data.taxBreakdown.data,
+                            backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#f43f5e'],
                             borderWidth: 0
                         }]
                     },
+                    options: chartConfig
+                });
+
+                // 3. Bar Chart
+                new Chart(document.getElementById('mismatchBarChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: data.mismatchCategories.labels,
+                        datasets: [{
+                            label: 'Expenditure (₹ Cr)',
+                            data: data.mismatchCategories.data,
+                            backgroundColor: '#f43f5e',
+                            borderRadius: 6
+                        }]
+                    },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false
+                        ...chartConfig,
+                        scales: {
+                            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } },
+                            x: { grid: { display: false }, ticks: { color: '#64748b' } }
+                        }
                     }
                 });
 
-            } catch (error) {
-                console.error("Failed to load analytics data:", error);
+                // 4. Doughnut
+                new Chart(document.getElementById('vendorHealthChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.vendorPerformance.labels,
+                        datasets: [{
+                            data: data.vendorPerformance.data,
+                            backgroundColor: ['#10b981', '#6366f1', '#f59e0b', '#f43f5e'],
+                            borderWidth: 0,
+                            cutout: '75%'
+                        }]
+                    },
+                    options: chartConfig
+                });
+
+            } catch (err) {
+                console.error('Analytics Loading Error:', err);
+                document.getElementById('loading-mask').style.display = 'none';
+                document.getElementById('error-display').style.display = 'block';
+                document.getElementById('error-text').textContent = err.message;
             }
         }
 
-        renderAnalytics();
+        start();
     </script>
 </body>
 

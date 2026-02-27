@@ -38,6 +38,21 @@ body {
     flex-direction: column;
 }
 
+.right-bar {
+    width: 280px;
+    background-color: var(--sidebar);
+    padding: 30px 20px;
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+}
+
+@media (max-width: 1300px) {
+    .right-bar {
+        display: none;
+    }
+}
+
 .sidebar-logo {
     font-size: 22px;
     font-weight: 700;
@@ -51,6 +66,7 @@ body {
     flex: 1;
     padding: 40px 50px;
     background: radial-gradient(circle at top right, rgba(79, 70, 229, 0.05), transparent);
+    overflow-y: auto;
 }
 
 .card {
@@ -172,6 +188,7 @@ h1 {
     letter-spacing: -1px;
     background: linear-gradient(to right, #fff, #94a3b8);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -228,4 +245,128 @@ tr td:last-child {
 
 .hidden {
     display: none;
+}
+
+/* ── Profile Section ────────────────────────────────────────────────── */
+
+.profile-container {
+    position: relative;
+    user-select: none;
+}
+
+.profile-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--sidebar);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, 0.05);
+    transition: var(--transition);
+    overflow: hidden;
+}
+
+.profile-icon:hover {
+    border-color: var(--accent-light);
+    transform: scale(1.05);
+}
+
+.profile-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-icon span {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent-light);
+}
+
+.profile-dropdown {
+    position: absolute;
+    top: calc(100% + 15px);
+    right: 0;
+    width: 280px;
+    background: #1a1f29;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 25px;
+    display: none;
+    z-index: 1000;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    animation: slideDown 0.3s ease;
+}
+
+.profile-dropdown.active {
+    display: block;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.profile-dropdown-info {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.profile-dropdown-pic {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: var(--sidebar);
+    margin: 0 auto 15px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid var(--accent);
+    overflow: hidden;
+}
+
+.profile-dropdown-pic img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-dropdown-pic span {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent-light);
+}
+
+.profile-dropdown h4 {
+    margin: 0;
+    font-size: 18px;
+    color: white;
+}
+
+.profile-dropdown .email {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin: 5px 0 15px 0;
+}
+
+.profile-dropdown .gst-badge {
+    background: rgba(79, 70, 229, 0.1);
+    color: var(--accent-light);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }

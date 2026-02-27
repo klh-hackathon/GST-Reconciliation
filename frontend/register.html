@@ -63,7 +63,14 @@
                 </div>
             </div>
 
-            <form id="login-form">
+            <form id="register-form">
+                <div style="margin-bottom: 20px;">
+                    <label style="display:block;margin-bottom:8px;color:var(--text-dim);font-size:14px;">Full
+                        Name</label>
+                    <input type="text" id="name" required
+                        style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:white;border-radius:8px;font-family:'Outfit'">
+                </div>
+
                 <div style="margin-bottom: 20px;">
                     <label style="display:block;margin-bottom:8px;color:var(--text-dim);font-size:14px;">Email
                         Access</label>
@@ -71,64 +78,74 @@
                         style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:white;border-radius:8px;font-family:'Outfit'">
                 </div>
 
+                <div style="margin-bottom: 20px;">
+                    <label style="display:block;margin-bottom:8px;color:var(--text-dim);font-size:14px;">GST
+                        Number</label>
+                    <input type="text" id="gst_number" required
+                        style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:white;border-radius:8px;font-family:'Outfit'">
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display:block;margin-bottom:8px;color:var(--text-dim);font-size:14px;">Profile Picture
+                        (Optional)</label>
+                    <input type="file" id="profile_pic" accept="image/*"
+                        style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:white;border-radius:8px;font-family:'Outfit'">
+                </div>
+
                 <div style="margin-bottom: 30px;">
                     <label style="display:block;margin-bottom:8px;color:var(--text-dim);font-size:14px;">Security
                         Key</label>
-                    <input type="password" id="password" required
+                    <input type="password" id="password" required minlength="6"
                         style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:white;border-radius:8px;font-family:'Outfit'">
                 </div>
 
                 <div id="error-msg" style="color:var(--danger);font-size:13px;margin-bottom:15px;display:none;"></div>
 
                 <button type="submit" class="btn w-full" id="submit-btn" style="margin-bottom: 15px;">
-                    AUTHENTICATE
+                    CREATE ACCOUNT
                 </button>
 
                 <div style="text-align: center; margin-top: 10px;">
-                    <span style="color:var(--text-dim);font-size:14px;">Don't have an account? </span>
-                    <a href="register.html"
-                        style="color:var(--accent-light);font-size:14px;text-decoration:none;font-weight:600;">Sign
-                        up</a>
+                    <span style="color:var(--text-dim);font-size:14px;">Already have an account? </span>
+                    <a href="index.html"
+                        style="color:var(--accent-light);font-size:14px;text-decoration:none;font-weight:600;">Log
+                        in</a>
                 </div>
             </form>
-
-            <p class="demo-version-text" style="cursor: pointer; margin-top: 25px;"
-                onclick="document.getElementById('login-form').dispatchEvent(new Event('submit'))">
-                LITE DEMO MODE v1.0
-            </p>
         </div>
     </div>
 
     <script type="module">
-        import { api, getUser } from './js/api.js';
+        import { api } from './js/api.js';
 
-        // Redirect if already logged in
-        window.addEventListener('load', async () => {
-            const user = await getUser();
-            if (user) {
-                window.location.href = 'dashboard.html';
-            }
-        });
-
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submit-btn');
             const errorMsg = document.getElementById('error-msg');
 
-            btn.textContent = 'VERIFYING...';
+            btn.textContent = 'REGISTERING...';
             btn.disabled = true;
             errorMsg.style.display = 'none';
 
             try {
-                await api.login(
-                    document.getElementById('email').value,
-                    document.getElementById('password').value
-                );
+                const formData = new FormData();
+                formData.append('email', document.getElementById('email').value);
+                formData.append('password', document.getElementById('password').value);
+                formData.append('name', document.getElementById('name').value);
+                formData.append('gst_number', document.getElementById('gst_number').value);
+
+                const picFile = document.getElementById('profile_pic').files[0];
+                if (picFile) {
+                    formData.append('profile_pic', picFile);
+                }
+
+                await api.register(formData);
                 window.location.href = 'dashboard.html';
             } catch (error) {
+                errorMsg.style.color = 'var(--danger)';
                 errorMsg.textContent = error.message;
                 errorMsg.style.display = 'block';
-                btn.textContent = 'AUTHENTICATE';
+                btn.textContent = 'CREATE ACCOUNT';
                 btn.disabled = false;
             }
         });

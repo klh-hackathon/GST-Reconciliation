@@ -1,6 +1,9 @@
 fastapi
-uvicorns
+uvicorn
 python-multipart
 python-dotenv
 pydantic
 pydantic-settings
+PyJWT
+httpx
+pypdf

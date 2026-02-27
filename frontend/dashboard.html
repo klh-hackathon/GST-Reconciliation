@@ -5,13 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard — GST Recon Engine</title>
-    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="css/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
 
 <body>
     <div class="app-layout">
         <aside class="sidebar" id="sidebar"></aside>
+
         <main class="main-content">
             <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:40px">
                 <div>
@@ -19,33 +20,35 @@
                     <p style="color:var(--text-dim);margin:5px 0 0 0">Real-time GST Recon & Risk Audit Dashboard</p>
                 </div>
                 <div style="display:flex;gap:12px">
+                    <button class="btn" id="upload-invoice-btn"
+                        style="background:var(--accent);color:white;border:none">UPLOAD INVOICE</button>
                     <button class="btn"
                         style="background:rgba(255,255,255,0.05);box-shadow:none;border:1px solid rgba(255,255,255,0.1)"
                         onclick="location.reload()">SYNC DATA</button>
-                    <button class="btn">GENERATE AUDIT PDF</button>
+                    <button class="btn" onclick="window.print()">GENERATE AUDIT PDF</button>
                 </div>
             </header>
 
             <div class="stat-grid">
                 <div class="stat-card">
-                    <div class="stat-label">TOTAL INVOICES</div>
+                    <div class="stat-label">TOTAL RECEIPTS (CR)</div>
                     <div class="stat-value" id="stat-invoices">...</div>
-                    <div style="font-size:12px;color:var(--success);margin-top:5px">↑ 12% vs last month</div>
+                    <div style="font-size:12px;color:var(--success);margin-top:5px">79.5% of total RE 25-26</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">TAX PROCESSED</div>
+                    <div class="stat-label">TAX REVENUE (CR)</div>
                     <div class="stat-value" id="stat-tax">...</div>
-                    <div style="font-size:12px;color:rgba(255,255,255,0.2);margin-top:5px">Across all GSTINs</div>
+                    <div style="font-size:12px;color:rgba(255,255,255,0.2);margin-top:5px">Net to Centre</div>
                 </div>
                 <div class="stat-card" style="--accent: var(--warning)">
-                    <div class="stat-label">MISMATCH COUNT</div>
+                    <div class="stat-label">TOTAL EXPENDITURE (CR)</div>
                     <div class="stat-value" id="stat-mismatches">...</div>
-                    <div style="font-size:12px;color:var(--danger);margin-top:5px">Requires immediate action</div>
+                    <div style="font-size:12px;color:var(--danger);margin-top:5px">74.3% of total RE 25-26</div>
                 </div>
                 <div class="stat-card" style="--accent: var(--danger)">
-                    <div class="stat-label">ITC AT RISK</div>
+                    <div class="stat-label">STATE DEVOLUTION (CR)</div>
                     <div class="stat-value" id="stat-itc">...</div>
-                    <div style="font-size:12px;color:var(--text-dim);margin-top:5px">Total exposure identified</div>
+                    <div style="font-size:12px;color:var(--text-dim);margin-top:5px">Transferred Share of Taxes</div>
                 </div>
             </div>
 
@@ -63,6 +66,7 @@
                 <div class="card">
                     <h3 style="margin-top:0;margin-bottom:20px">System Activity</h3>
                     <div id="activity-feed" style="display:flex;flex-direction:column;gap:15px">
+                        <!-- Activity items will be injected here -->
                     </div>
                     <button class="btn w-full"
                         style="margin-top:20px;background:none;border:1px solid rgba(255,255,255,0.1);font-size:12px">VIEW
@@ -76,10 +80,6 @@
                         <h3 style="margin:0">Vendor Risk Profiles</h3>
                         <p style="font-size:13px;color:var(--text-dim);margin:5px 0 0 0">Mismatches vs Returns Filing
                             status</p>
-                    </div>
-                    <div style="display:flex;gap:10px">
-                        <input type="text" placeholder="Filter GSTIN..."
-                            style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);color:white;padding:5px 15px;border-radius:8px;font-size:13px">
                     </div>
                 </div>
                 <table>
@@ -97,17 +97,190 @@
                 </table>
             </div>
         </main>
+
+        <aside class="right-bar">
+            <h3 style="font-size:14px; color:var(--text-dim); margin-bottom:20px; letter-spacing:1px;">ENGINE STATUS
+            </h3>
+            <div class="card"
+                style="padding:15px; margin-bottom:20px; background:rgba(16, 185, 129, 0.05); border-color:rgba(16, 185, 129, 0.2);">
+                <div style="font-size:11px; color:var(--success); font-weight:700; margin-bottom:5px;">AI RECONCILIATION
+                </div>
+                <div style="font-size:18px; font-weight:700;">ACTIVE</div>
+            </div>
+
+            <div style="flex:1;">
+                <div style="margin-bottom:25px;">
+                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px;">
+                        <span style="color:var(--text-dim)">Global Accuracy</span>
+                        <span style="color:var(--success)">99.8%</span>
+                    </div>
+                    <div style="height:4px; background:rgba(255,255,255,0.05); border-radius:2px; overflow:hidden;">
+                        <div style="width:99.8%; height:100%; background:var(--success);"></div>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:25px;">
+                    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:8px;">
+                        <span style="color:var(--text-dim)">Processing Load</span>
+                        <span style="color:var(--warning)">High</span>
+                    </div>
+                    <div style="height:4px; background:rgba(255,255,255,0.05); border-radius:2px; overflow:hidden;">
+                        <div style="width:75%; height:100%; background:var(--warning);"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                style="padding:15px; background:rgba(255,255,255,0.02); border-radius:12px; border:1px solid rgba(255,255,255,0.05);">
+                <div style="font-size:11px; color:var(--text-dim); margin-bottom:10px;">CONNECTED REGION</div>
+                <div style="font-size:13px; font-weight:600;">Azure West India</div>
+            </div>
+        </aside>
     </div>
 
-    <script src="/js/api.js"></script>
-    <script src="/js/shared.js"></script>
-    <script>
-        initSidebar('dashboard');
+    <!-- Upload Modal -->
+    <div id="upload-modal" class="modal"
+        style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); align-items:center; justify-content:center;">
+        <div class="card" style="width:100%; max-width:500px; padding:30px; border:1px solid rgba(255,255,255,0.1);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+                <h2 style="margin:0; font-size:20px;">Upload Invoices</h2>
+                <button id="close-modal"
+                    style="background:none; border:none; color:var(--text-dim); font-size:24px; cursor:pointer;">&times;</button>
+            </div>
 
-        function getActivityIcon(status) {
-            if (status === 'success') return '🟢';
-            if (status === 'warning') return '🟡';
-            return '🔵';
+            <form id="upload-form">
+                <div style="margin-bottom:20px;">
+                    <label style="display:block; margin-bottom:8px; font-size:13px; color:var(--text-dim);">Select
+                        Return Type</label>
+                    <select id="gstr-type" required
+                        style="width:100%; padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:8px;">
+                        <option value="GSTR-1">GSTR-1</option>
+                        <option value="GSTR-2B">GSTR-2B</option>
+                        <option value="GSTR-3B">GSTR-3B</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom:25px;">
+                    <label style="display:block; margin-bottom:8px; font-size:13px; color:var(--text-dim);">File (PDF or
+                        CSV)</label>
+                    <div id="drop-zone"
+                        style="border:2px dashed rgba(255,255,255,0.1); border-radius:12px; padding:40px 20px; text-align:center; cursor:pointer; transition:0.3s;">
+                        <p id="file-name" style="margin:0; color:var(--text-dim); font-size:14px;">Drag & drop or Click
+                            to browse</p>
+                        <input type="file" id="invoice-file" accept=".pdf,.csv" style="display:none;" required>
+                    </div>
+                </div>
+
+                <div id="upload-status" style="margin-bottom:20px; font-size:13px; display:none;"></div>
+
+                <button type="submit" class="btn w-full" id="confirm-upload-btn">PROCESS INVOICE</button>
+            </form>
+
+            <div id="json-result" style="margin-top:20px; display:none;">
+                <label style="display:block; margin-bottom:8px; font-size:12px; color:var(--success);">Extracted Data
+                    (JSON)</label>
+                <div
+                    style="background:rgba(0,0,0,0.3); padding:15px; border-radius:8px; max-height:200px; overflow-y:auto;">
+                    <pre id="json-output"
+                        style="margin:0; font-size:12px; font-family:monospace; color:var(--accent-light); white-space:pre-wrap;"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { api, requireAuth } from './js/api.js';
+        import { initSidebar, initHeader, formatINR, riskBadge } from './js/shared.js';
+
+        async function start() {
+            console.log('Starting Dashboard...');
+            // Enforce authentication
+            const authenticated = await requireAuth();
+            if (!authenticated) return;
+
+            // Initialize UI components
+            initSidebar('dashboard');
+            initHeader(api);
+
+            // Set up sidebar logout button click listener (since it was injected)
+            document.addEventListener('click', (e) => {
+                if (e.target && e.target.id === 'logout-btn') {
+                    api.logout();
+                }
+            });
+
+            // Set up Page specific bindings
+            setupModal();
+
+            // Load Dynamic Data
+            await loadDashboardData();
+        }
+
+        function setupModal() {
+            const modal = document.getElementById('upload-modal');
+            const openBtn = document.getElementById('upload-invoice-btn');
+            const closeBtn = document.getElementById('close-modal');
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('invoice-file');
+            const fileNameDisp = document.getElementById('file-name');
+            const uploadForm = document.getElementById('upload-form');
+            const uploadStatus = document.getElementById('upload-status');
+            const jsonResult = document.getElementById('json-result');
+            const jsonOutput = document.getElementById('json-output');
+
+            openBtn.onclick = () => {
+                modal.style.display = 'flex';
+                uploadStatus.style.display = 'none';
+                jsonResult.style.display = 'none';
+                uploadForm.reset();
+                fileNameDisp.textContent = 'Drag & drop or Click to browse';
+            };
+
+            closeBtn.onclick = () => modal.style.display = 'none';
+            window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; };
+
+            dropZone.onclick = () => fileInput.click();
+            fileInput.onchange = () => {
+                if (fileInput.files.length > 0) {
+                    fileNameDisp.textContent = `Selected: ${fileInput.files[0].name}`;
+                    fileNameDisp.style.color = 'var(--accent-light)';
+                }
+            };
+
+            uploadForm.onsubmit = async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById('confirm-upload-btn');
+                const file = fileInput.files[0];
+                const type = document.getElementById('gstr-type').value;
+
+                if (!file) return;
+
+                btn.textContent = 'CONVERTING...';
+                btn.disabled = true;
+                uploadStatus.style.display = 'block';
+                uploadStatus.style.color = 'var(--text-dim)';
+                uploadStatus.textContent = 'Uploading and processing file...';
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('gstr_type', type);
+
+                try {
+                    const result = await api.uploadInvoice(formData);
+                    uploadStatus.style.color = 'var(--success)';
+                    uploadStatus.textContent = 'Processing Complete!';
+                    btn.textContent = 'PROCESS INVOICE';
+                    btn.disabled = false;
+
+                    jsonResult.style.display = 'block';
+                    jsonOutput.textContent = JSON.stringify(result, null, 2);
+                } catch (error) {
+                    uploadStatus.style.color = 'var(--danger)';
+                    uploadStatus.textContent = 'Error: ' + error.message;
+                    btn.textContent = 'PROCESS INVOICE';
+                    btn.disabled = false;
+                }
+            };
         }
 
         async function loadDashboardData() {
@@ -118,22 +291,25 @@
                     api.getRecentActivity()
                 ]);
 
+                // Update Stats
                 document.getElementById('stat-invoices').textContent = statistics.totalInvoices.toLocaleString();
                 document.getElementById('stat-tax').textContent = formatINR(statistics.totalTax);
                 document.getElementById('stat-mismatches').textContent = statistics.mismatchCount;
                 document.getElementById('stat-itc').textContent = formatINR(statistics.itcAtRisk);
 
+                // Update Activity Feed
                 const activityContainer = document.getElementById('activity-feed');
                 activityContainer.innerHTML = recentActivities.map(activity => `
-                    <div style="display:flex;gap:12px;font-size:13px;padding:10px;background:rgba(255,255,255,0.02);border-radius:10px">
-                        <span>${getActivityIcon(activity.status)}</span>
+                    <div style="display:flex;gap:12px;font-size:13px;padding:12px;background:rgba(255,255,255,0.02);border-radius:12px;border:1px solid rgba(255,255,255,0.03)">
+                        <span style="font-size:16px">${getActivityIcon(activity.status)}</span>
                         <div style="flex:1">
-                            <div style="font-weight:600">${activity.event}</div>
+                            <div style="font-weight:600; color:var(--text)">${activity.event}</div>
                             <div style="color:var(--text-dim);font-size:11px">${activity.time}</div>
                         </div>
                     </div>
                 `).join('');
 
+                // Update Vendor Table
                 const tableBody = document.getElementById('vendor-table-body');
                 tableBody.innerHTML = vendorRisks.map(vendor => `
                     <tr>
@@ -146,53 +322,63 @@
                     </tr>
                 `).join('');
 
-                const canvasContext = document.getElementById('detailed-chart').getContext('2d');
+                // Render Chart
+                renderMainChart();
 
-                const gradientFill = canvasContext.createLinearGradient(0, 0, 0, 400);
-                gradientFill.addColorStop(0, 'rgba(99, 102, 241, 0.2)');
-                gradientFill.addColorStop(1, 'rgba(99, 102, 241, 0)');
-
-                new Chart(canvasContext, {
-                    type: 'line',
-                    data: {
-                        labels: ['Sept', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'],
-                        datasets: [
-                            {
-                                label: 'Verification Rate',
-                                data: [85, 88, 82, 91, 89, 94],
-                                borderColor: '#10b981',
-                                tension: 0.4,
-                                pointRadius: 0
-                            },
-                            {
-                                label: 'Mismatch Trends',
-                                data: [12, 11, 15, 8, 9, 6],
-                                borderColor: '#f43f5e',
-                                backgroundColor: 'rgba(244, 63, 94, 0.05)',
-                                fill: true,
-                                tension: 0.4,
-                                pointRadius: 0
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { position: 'top', labels: { color: '#94a3b8', font: { family: 'Outfit', size: 11 } } }
-                        },
-                        scales: {
-                            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } },
-                            x: { grid: { display: false }, ticks: { color: '#64748b' } }
-                        }
-                    }
-                });
             } catch (error) {
                 console.error('Dashboard Load Error:', error);
             }
         }
 
-        loadDashboardData();
+        function getActivityIcon(status) {
+            if (status === 'success') return '✅';
+            if (status === 'warning') return '⚠️';
+            return 'ℹ️';
+        }
+
+        function renderMainChart() {
+            const ctx = document.getElementById('detailed-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ["Apr '25", "May '25", "Jun '25", "Aug '25", "Sep '25", "Oct '25", "Nov '25", "Dec '25", "Jan '26"],
+                    datasets: [
+                        {
+                            label: 'Receipts Progress (%)',
+                            data: [8.0, 21.0, 26.9, 36.7, 49.5, 51.5, 55.7, 72.2, 79.5],
+                            borderColor: '#10b981',
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#10b981'
+                        },
+                        {
+                            label: 'Expenditure Progress (%)',
+                            data: [9.2, 14.7, 24.1, 37.1, 45.5, 51.8, 57.8, 66.7, 74.3],
+                            borderColor: '#f43f5e',
+                            backgroundColor: 'rgba(244, 63, 94, 0.05)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#f43f5e'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { color: '#94a3b8', font: { family: 'Outfit', size: 11 } } }
+                    },
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } },
+                        x: { grid: { display: false }, ticks: { color: '#64748b' } }
+                    }
+                }
+            });
+        }
+
+        // Run the start sequence
+        start();
     </script>
 </body>
 
