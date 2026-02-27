@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings — GST Recon Engine</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar"></aside>
+        <main class="main-content">
+            <header style="margin-bottom:40px">
+                <h1 style="margin:0">Settings</h1>
+                <p style="color:var(--text-dim)">Global configuration and system status</p>
+            </header>
+
+            <div style="max-width:600px">
+                <div class="card" style="margin-bottom:20px">
+                    <h3>General Info</h3>
+                    <div
+                        style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                        <span>Tenant Name</span>
+                        <strong id="set-tenant">...</strong>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;padding:10px 0">
+                        <span>Base Region</span>
+                        <strong id="set-region">...</strong>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>System Controls</h3>
+                    <div style="margin-bottom:20px">
+                        <label style="display:block;margin-bottom:10px">Auto-Scan Frequency</label>
+                        <select class="btn" style="width:100%;text-align:left;background:rgba(255,255,255,0.05)">
+                            <option>Daily (Default)</option>
+                            <option>Weekly</option>
+                            <option>Real-time</option>
+                        </select>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                        <div>
+                            <strong>Engine Status</strong>
+                            <p style="font-size:12px;color:var(--text-dim);margin:0">AI Risk detection is active</p>
+                        </div>
+                        <span class="badge badge-success">ONLINE</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/shared.js"></script>
+    <script>
+        initSidebar('settings');
+
+        async function loadSettingsData() {
+            try {
+                const systemConfig = await api.getSettings();
+
+                document.getElementById('set-tenant').textContent = systemConfig.tenant;
+                document.getElementById('set-region').textContent = systemConfig.region;
+
+            } catch (error) {
+                console.error("Failed to load system defaults:", error);
+            }
+        }
+
+        loadSettingsData();
+    </script>
+</body>
+
+</html>

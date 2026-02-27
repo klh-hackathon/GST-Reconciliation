@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — GST Recon Engine</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+
+<body>
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar"></aside>
+        <main class="main-content">
+            <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:40px">
+                <div>
+                    <h1 style="margin:0;font-size:32px;letter-spacing:-1px">Executive Intelligence</h1>
+                    <p style="color:var(--text-dim);margin:5px 0 0 0">Real-time GST Recon & Risk Audit Dashboard</p>
+                </div>
+                <div style="display:flex;gap:12px">
+                    <button class="btn"
+                        style="background:rgba(255,255,255,0.05);box-shadow:none;border:1px solid rgba(255,255,255,0.1)"
+                        onclick="location.reload()">SYNC DATA</button>
+                    <button class="btn">GENERATE AUDIT PDF</button>
+                </div>
+            </header>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-label">TOTAL INVOICES</div>
+                    <div class="stat-value" id="stat-invoices">...</div>
+                    <div style="font-size:12px;color:var(--success);margin-top:5px">↑ 12% vs last month</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">TAX PROCESSED</div>
+                    <div class="stat-value" id="stat-tax">...</div>
+                    <div style="font-size:12px;color:rgba(255,255,255,0.2);margin-top:5px">Across all GSTINs</div>
+                </div>
+                <div class="stat-card" style="--accent: var(--warning)">
+                    <div class="stat-label">MISMATCH COUNT</div>
+                    <div class="stat-value" id="stat-mismatches">...</div>
+                    <div style="font-size:12px;color:var(--danger);margin-top:5px">Requires immediate action</div>
+                </div>
+                <div class="stat-card" style="--accent: var(--danger)">
+                    <div class="stat-label">ITC AT RISK</div>
+                    <div class="stat-value" id="stat-itc">...</div>
+                    <div style="font-size:12px;color:var(--text-dim);margin-top:5px">Total exposure identified</div>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns: 2fr 1fr;gap:30px;margin-bottom:30px">
+                <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                        <h3 style="margin:0">ITC Compliance Analysis</h3>
+                        <div class="badge badge-success">Live Engine</div>
+                    </div>
+                    <div style="height:320px">
+                        <canvas id="detailed-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="margin-top:0;margin-bottom:20px">System Activity</h3>
+                    <div id="activity-feed" style="display:flex;flex-direction:column;gap:15px">
+                    </div>
+                    <button class="btn w-full"
+                        style="margin-top:20px;background:none;border:1px solid rgba(255,255,255,0.1);font-size:12px">VIEW
+                        ALL LOGS</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                    <div>
+                        <h3 style="margin:0">Vendor Risk Profiles</h3>
+                        <p style="font-size:13px;color:var(--text-dim);margin:5px 0 0 0">Mismatches vs Returns Filing
+                            status</p>
+                    </div>
+                    <div style="display:flex;gap:10px">
+                        <input type="text" placeholder="Filter GSTIN..."
+                            style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);color:white;padding:5px 15px;border-radius:8px;font-size:13px">
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>GSTIN</th>
+                            <th>Invoices</th>
+                            <th>Mismatched</th>
+                            <th>Last Filed</th>
+                            <th>Risk Exposure</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vendor-table-body"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/shared.js"></script>
+    <script>
+        initSidebar('dashboard');
+
+        function getActivityIcon(status) {
+            if (status === 'success') return '🟢';
+            if (status === 'warning') return '🟡';
+            return '🔵';
+        }
+
+        async function loadDashboardData() {
+            try {
+                const [statistics, vendorRisks, recentActivities] = await Promise.all([
+                    api.getDashboardStats(),
+                    api.getVendorRisks(),
+                    api.getRecentActivity()
+                ]);
+
+                document.getElementById('stat-invoices').textContent = statistics.totalInvoices.toLocaleString();
+                document.getElementById('stat-tax').textContent = formatINR(statistics.totalTax);
+                document.getElementById('stat-mismatches').textContent = statistics.mismatchCount;
+                document.getElementById('stat-itc').textContent = formatINR(statistics.itcAtRisk);
+
+                const activityContainer = document.getElementById('activity-feed');
+                activityContainer.innerHTML = recentActivities.map(activity => `
+                    <div style="display:flex;gap:12px;font-size:13px;padding:10px;background:rgba(255,255,255,0.02);border-radius:10px">
+                        <span>${getActivityIcon(activity.status)}</span>
+                        <div style="flex:1">
+                            <div style="font-weight:600">${activity.event}</div>
+                            <div style="color:var(--text-dim);font-size:11px">${activity.time}</div>
+                        </div>
+                    </div>
+                `).join('');
+
+                const tableBody = document.getElementById('vendor-table-body');
+                tableBody.innerHTML = vendorRisks.map(vendor => `
+                    <tr>
+                        <td><code style="color:var(--accent-light);font-size:14px">${vendor.gstin}</code></td>
+                        <td>${vendor.totalInvoices}</td>
+                        <td>${vendor.mismatchedInvoices}</td>
+                        <td style="color:var(--text-dim)">${vendor.lastFiled}</td>
+                        <td><strong>${formatINR((vendor.riskScore / 100) * 50000)}</strong></td>
+                        <td>${riskBadge(vendor.riskScore)}</td>
+                    </tr>
+                `).join('');
+
+                const canvasContext = document.getElementById('detailed-chart').getContext('2d');
+
+                const gradientFill = canvasContext.createLinearGradient(0, 0, 0, 400);
+                gradientFill.addColorStop(0, 'rgba(99, 102, 241, 0.2)');
+                gradientFill.addColorStop(1, 'rgba(99, 102, 241, 0)');
+
+                new Chart(canvasContext, {
+                    type: 'line',
+                    data: {
+                        labels: ['Sept', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'],
+                        datasets: [
+                            {
+                                label: 'Verification Rate',
+                                data: [85, 88, 82, 91, 89, 94],
+                                borderColor: '#10b981',
+                                tension: 0.4,
+                                pointRadius: 0
+                            },
+                            {
+                                label: 'Mismatch Trends',
+                                data: [12, 11, 15, 8, 9, 6],
+                                borderColor: '#f43f5e',
+                                backgroundColor: 'rgba(244, 63, 94, 0.05)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 0
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'top', labels: { color: '#94a3b8', font: { family: 'Outfit', size: 11 } } }
+                        },
+                        scales: {
+                            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } },
+                            x: { grid: { display: false }, ticks: { color: '#64748b' } }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Dashboard Load Error:', error);
+            }
+        }
+
+        loadDashboardData();
+    </script>
+</body>
+
+</html>

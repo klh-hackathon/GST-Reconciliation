@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GST Recon Engine</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .intro-features {
+            text-align: left;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 14px;
+        }
+
+        .feature-item {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .check-icon {
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        .demo-version-text {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.2);
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-wrapper">
+        <div class="login-card">
+            <h1>GST RECON</h1>
+            <p style="color:var(--text-dim); margin-bottom:30px">
+                Next-Gen ITC Risk Intelligence
+            </p>
+
+            <div class="intro-features">
+                <div class="feature-item">
+                    <span class="check-icon">✓</span>
+                    Real-time Graph Analytics
+                </div>
+                <div class="feature-item">
+                    <span class="check-icon">✓</span>
+                    Automated Mismatch Detection
+                </div>
+                <div class="feature-item">
+                    <span class="check-icon">✓</span>
+                    Vendor Risk Profiling
+                </div>
+            </div>
+
+            <button class="btn w-full" onclick="window.location.href='/dashboard.html'">
+                LAUNCH PLATFORM
+            </button>
+
+            <p class="demo-version-text">LITE DEMO MODE v1.0</p>
+        </div>
+    </div>
+</body>
+
+</html>
