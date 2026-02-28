@@ -1,0 +1,26 @@
+# Backend (stays on your laptop, never pushed)
+backend/
+*.pyc
+__pycache__/
+.env
+*.env
+
+# System files
+.DS_Store
+Thumbs.db
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+node_modules/
+*.sql
+demo_data.sql
+fix_rls.sql
+sample_invoice.csv
+app.py
+
+# Gemini agent data
+.gemini/

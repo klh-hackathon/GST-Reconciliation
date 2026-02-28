@@ -64,18 +64,35 @@
             </div>
 
             <form id="login-form">
-                <div style="margin-bottom: 20px;">
-                    <label style="display:block;margin-bottom:8px;color:var(--text-dim);font-size:14px;">Email
-                        Access</label>
-                    <input type="email" id="email" required
-                        style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:white;border-radius:8px;font-family:'Outfit'">
+                <div id="login-section">
+                    <div style="margin-bottom: 20px;">
+                        <label style="display:block;margin-bottom:8px;color:var(--text-dim);font-size:14px;">Email
+                            Access</label>
+                        <input type="email" id="email" required
+                            style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:white;border-radius:8px;font-family:'Outfit'">
+                    </div>
+
+                    <div style="margin-bottom: 30px;">
+                        <label style="display:block;margin-bottom:8px;color:var(--text-dim);font-size:14px;">Security
+                            Key</label>
+                        <input type="password" id="password" required
+                            style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:white;border-radius:8px;font-family:'Outfit'">
+                    </div>
+
+                    <div style="text-align: center; margin-top: 10px; margin-bottom: 15px;">
+                        <span style="color:var(--text-dim);font-size:14px;">Don't have an account? </span>
+                        <a href="register.html"
+                            style="color:var(--accent-light);font-size:14px;text-decoration:none;font-weight:600;">Sign
+                            up</a>
+                    </div>
                 </div>
 
-                <div style="margin-bottom: 30px;">
-                    <label style="display:block;margin-bottom:8px;color:var(--text-dim);font-size:14px;">Security
-                        Key</label>
-                    <input type="password" id="password" required
-                        style="width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:white;border-radius:8px;font-family:'Outfit'">
+                <div id="otp-section" style="display: none; text-align: center;">
+                    <p style="color: var(--success); font-weight: 600; margin-bottom: 20px;">Credentials verfied.</p>
+                    <p style="color: var(--text-dim); font-size: 14px; margin-bottom: 15px;">Enter the 6-digit code sent
+                        to your email.</p>
+                    <input type="text" id="otp" maxlength="6" placeholder="000000"
+                        style="width:100%;padding:15px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:white;border-radius:8px;font-family:'Outfit';font-size:24px;text-align:center;letter-spacing:10px;margin-bottom:20px;">
                 </div>
 
                 <div id="error-msg" style="color:var(--danger);font-size:13px;margin-bottom:15px;display:none;"></div>
@@ -83,13 +100,6 @@
                 <button type="submit" class="btn w-full" id="submit-btn" style="margin-bottom: 15px;">
                     AUTHENTICATE
                 </button>
-
-                <div style="text-align: center; margin-top: 10px;">
-                    <span style="color:var(--text-dim);font-size:14px;">Don't have an account? </span>
-                    <a href="register.html"
-                        style="color:var(--accent-light);font-size:14px;text-decoration:none;font-weight:600;">Sign
-                        up</a>
-                </div>
             </form>
 
             <p class="demo-version-text" style="cursor: pointer; margin-top: 25px;"
@@ -99,6 +109,7 @@
         </div>
     </div>
 
+    <script src="js/config.js"></script>
     <script type="module">
         import { api, getUser } from './js/api.js';
 
@@ -110,25 +121,46 @@
             }
         });
 
+        let awaitingOtp = false;
+
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submit-btn');
             const errorMsg = document.getElementById('error-msg');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const otp = document.getElementById('otp').value;
 
             btn.textContent = 'VERIFYING...';
             btn.disabled = true;
             errorMsg.style.display = 'none';
 
             try {
-                await api.login(
-                    document.getElementById('email').value,
-                    document.getElementById('password').value
-                );
-                window.location.href = 'dashboard.html';
+                if (!awaitingOtp) {
+                    // Step 1: Initial Login
+                    const data = await api.login(email, password);
+                    if (data.otp_required) {
+                        awaitingOtp = true;
+                        document.getElementById('login-section').style.display = 'none';
+                        document.getElementById('otp-section').style.display = 'block';
+                        document.getElementById('otp').required = true;
+                        btn.textContent = 'VERIFY OTP';
+                        btn.disabled = false;
+                    } else if (data.access_token) {
+                        window.location.href = 'dashboard.html';
+                    }
+                } else {
+                    // Step 2: Verify OTP
+                    const data = await api.verifyOtp(email, otp);
+                    if (data.access_token) {
+                        btn.textContent = 'SUCCESS';
+                        window.location.href = 'dashboard.html';
+                    }
+                }
             } catch (error) {
                 errorMsg.textContent = error.message;
                 errorMsg.style.display = 'block';
-                btn.textContent = 'AUTHENTICATE';
+                btn.textContent = awaitingOtp ? 'VERIFY OTP' : 'AUTHENTICATE';
                 btn.disabled = false;
             }
         });

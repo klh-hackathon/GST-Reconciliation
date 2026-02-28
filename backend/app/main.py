@@ -7,7 +7,13 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form
+from app.graph_engine import (
+    build_knowledge_graph, build_full_graph,
+    run_fraud_engine as kg_run_fraud,
+    graph_to_d3, fetch_all_users, fetch_all_invoices_from_db
+)
+
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Form, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -16,12 +22,47 @@ import jwt
 import httpx
 import csv
 import io
+import smtplib
+from email.mime.text import MIMEText
+from dotenv import load_dotenv
 from pypdf import PdfReader
+
+load_dotenv() # Load environment variables
 
 # ── Config ──────────────────────────────────────────────────────────────────
 JWT_SECRET = "gst-recon-lite-secret-key-change-in-production"
 JWT_ALGORITHM = "HS256"
-JWT_EXPIRY_HOURS = 24
+JWT_EXPIRY_MINUTES = 30  # Reduced for High Security
+
+SMTP_EMAIL = os.getenv("SMTP_EMAIL")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+
+OTP_STORE = {}
+
+def send_otp_email(to_email: str) -> str:
+    otp = str(secrets.randbelow(1000000)).zfill(6)
+    OTP_STORE[to_email] = {
+        "otp": otp,
+        "exp": datetime.now() + timedelta(minutes=5)
+    }
+    
+    if not SMTP_EMAIL or not SMTP_PASSWORD:
+        print(f"SMTP not configured. Generated OTP for {to_email}: {otp}")
+        return otp
+
+    msg = MIMEText(f"Your GST Recon Engine login verification code is: {otp}\n\nThis code expires in 5 minutes.")
+    msg['Subject'] = 'GST Recon - Login OTP'
+    msg['From'] = f"GST Recon Engine <{SMTP_EMAIL}>"
+    msg['To'] = to_email
+
+    try:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(SMTP_EMAIL, SMTP_PASSWORD)
+            server.send_message(msg)
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+        
+    return otp
 
 SUPABASE_URL = "https://rcrqpyagghriukqppmpd.supabase.co"
 SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJjcnFweWFnZ2hyaXVrcXBwbXBkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNjA2NzksImV4cCI6MjA4NzczNjY3OX0.0OWLAYl0Zi-tlndP-moatPr0PGl4ABdcj1zLpKt4YhM"
@@ -53,7 +94,7 @@ def create_token(user_id: str, email: str):
         "sub": str(user_id),
         "email": email,
         "role": "authenticated",
-        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRY_HOURS)
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRY_MINUTES)
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
@@ -61,19 +102,43 @@ def create_token(user_id: str, email: str):
 
 security = HTTPBearer()
 
-async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def verify_token(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Verifies the app-level JWT token and optionally pins to Cloudflare Access."""
     token = credentials.credentials
     try:
+        # 1. Standard App Token Verification
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        if payload.get("role") != "authenticated":
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        
+        # 2. ZERO TRUST: Verify Cloudflare Access Assertion (if configured)
+        # If the environment variable CF_ACCESS_AUD is set in your .env, 
+        # the system will strictly verify that the request came through your 
+        # Cloudflare Zero Trust gateway.
+        cf_assertion = request.headers.get("Cf-Access-Jwt-Assertion")
+        cf_aud = os.getenv("CF_ACCESS_AUD")
+        
+        if cf_aud and not cf_assertion:
+            raise HTTPException(status_code=403, detail="Cloudflare Zero Trust signature missing.")
+        
+        # Note: In production, you would also verify the cf_assertion signature 
+        # using Cloudflare's public keys.
+        
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired. Please log in again.")
-    except Exception:
+    except PyJWTError: # Catch all other JWT errors
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except Exception: # Generic catch-all for any other unexpected errors
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token.")
 
 # ── Request Models ──────────────────────────────────────────────────────────
+
+class VerifyOTPRequest(BaseModel):
+    email: str
+    otp: str
 
 class AuthRequest(BaseModel):
     email: str
@@ -95,8 +160,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 def generate_custom_id():
@@ -185,6 +252,36 @@ async def login(req: AuthRequest):
         if not verify_password(req.password, password_hash, salt):
             raise HTTPException(status_code=401, detail="Invalid email or password.")
         
+        # Trigger OTP email
+        send_otp_email(user["email"])
+        return {"otp_required": True, "email": user["email"]}
+
+@app.post("/api/auth/verify-otp")
+async def verify_otp(req: VerifyOTPRequest):
+    async with httpx.AsyncClient() as client:
+        url = f"{SUPABASE_URL}/rest/v1/recon_users?email=eq.{req.email}&select=*"
+        resp = await client.get(url, headers=SUPABASE_HEADERS)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=500, detail="Database connection error.")
+        
+        users = resp.json()
+        if not users or len(users) == 0:
+            raise HTTPException(status_code=401, detail="Invalid user.")
+        user = users[0]
+
+        record = OTP_STORE.get(req.email)
+        if not record:
+            raise HTTPException(status_code=400, detail="OTP expired or not requested.")
+            
+        if datetime.now() > record["exp"]:
+            del OTP_STORE[req.email]
+            raise HTTPException(status_code=400, detail="OTP expired.")
+            
+        if record["otp"] != req.otp:
+            raise HTTPException(status_code=400, detail="Invalid OTP. Please try again.")
+            
+        # OTP Success
+        del OTP_STORE[req.email]
         token = create_token(user["id"], user["email"])
         return {"access_token": token, "email": user["email"], "user_id": user["id"]}
 
@@ -896,6 +993,182 @@ async def upload_invoice(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to process file: {str(e)}")
+
+
+# ── Knowledge Graph API Endpoints ──────────────────────────────────────────
+
+@app.get("/api/graph/user")
+async def get_user_graph(user: dict = Depends(verify_token)):
+    """
+    Build and return the knowledge graph subgraph for the logged-in user.
+    Shows: user's GSTIN node + all direct connections (2-hop neighborhood).
+    """
+    user_id = user.get("sub")
+    async with httpx.AsyncClient() as client:
+        graph, invoices = await build_full_graph(client, SUPABASE_URL, SUPABASE_HEADERS)
+        d3_data = graph_to_d3(graph, filter_user_id=user_id)
+        
+        # Also run fraud engine on all invoices for risk annotation
+        fraud_results = kg_run_fraud(invoices, graph)
+        
+        return {
+            "graph": d3_data,
+            "fraud_summary": fraud_results["summary"],
+            "cycles": fraud_results["circular_trading_cycles"],
+        }
+
+
+@app.get("/api/graph/admin")
+async def get_admin_graph(user: dict = Depends(verify_token)):
+    """
+    Full system knowledge graph (admin only).
+    Shows ALL users, cross-user connections, cycles, clusters.
+    """
+    # Role check
+    user_id = user.get("sub")
+    async with httpx.AsyncClient() as client:
+        # Verify admin role
+        resp = await client.get(
+            f"{SUPABASE_URL}/rest/v1/recon_users?id=eq.{user_id}&select=login_type",
+            headers=SUPABASE_HEADERS
+        )
+        user_data = resp.json()
+        if not user_data or not isinstance(user_data, list) or len(user_data) == 0:
+            raise HTTPException(status_code=403, detail="User not found.")
+        if user_data[0].get("login_type") != "admin":
+            raise HTTPException(status_code=403, detail="Admin access required.")
+        
+        graph, invoices = await build_full_graph(client, SUPABASE_URL, SUPABASE_HEADERS)
+        d3_data = graph_to_d3(graph)  # No filter = full graph
+        fraud_results = kg_run_fraud(invoices, graph)
+        
+        return {
+            "graph": d3_data,
+            "fraud_summary": fraud_results["summary"],
+            "top_rules": fraud_results["top_triggered_rules"],
+            "cycles": fraud_results["circular_trading_cycles"],
+            "total_invoices": fraud_results["total_invoices_scanned"],
+        }
+
+
+@app.get("/api/graph/node/{gstin}")
+async def get_graph_node(gstin: str, user: dict = Depends(verify_token)):
+    """
+    Get a single GSTIN node with its neighbors and edge details.
+    """
+    async with httpx.AsyncClient() as client:
+        graph, invoices = await build_full_graph(client, SUPABASE_URL, SUPABASE_HEADERS)
+        
+        node = graph["nodes"].get(gstin.upper())
+        if not node:
+            raise HTTPException(status_code=404, detail=f"GSTIN {gstin} not found in graph.")
+        
+        # Get neighbors
+        neighbors_out = list(graph["adjacency"].get(gstin.upper(), set()))
+        neighbors_in = list(graph["reverse_adj"].get(gstin.upper(), set()))
+        
+        # Get edges
+        outgoing_edges = []
+        for tgt in neighbors_out:
+            for edge in graph["edges"].get((gstin.upper(), tgt), []):
+                outgoing_edges.append(edge)
+        
+        incoming_edges = []
+        for src in neighbors_in:
+            for edge in graph["edges"].get((src, gstin.upper()), []):
+                incoming_edges.append(edge)
+        
+        return {
+            "node": node,
+            "outgoing_connections": neighbors_out,
+            "incoming_connections": neighbors_in,
+            "outgoing_edges": outgoing_edges,
+            "incoming_edges": incoming_edges,
+        }
+
+
+@app.get("/api/fraud/entity/{gstin}")
+async def get_entity_risk(gstin: str, user: dict = Depends(verify_token)):
+    """
+    Full risk report for a single GSTIN entity.
+    Returns the explainable JSON format per spec.
+    """
+    async with httpx.AsyncClient() as client:
+        graph, invoices = await build_full_graph(client, SUPABASE_URL, SUPABASE_HEADERS)
+        
+        node = graph["nodes"].get(gstin.upper())
+        if not node:
+            raise HTTPException(status_code=404, detail=f"GSTIN {gstin} not found.")
+        
+        # Find invoices involving this GSTIN
+        entity_invoices = [
+            inv for inv in invoices
+            if (str(inv.get("supplier_gstin", "")).upper() == gstin.upper() or
+                str(inv.get("buyer_gstin", "")).upper() == gstin.upper())
+        ]
+        
+        # Run fraud engine
+        fraud = kg_run_fraud(invoices, graph)
+        
+        # Collect all rule hits for this entity
+        detected_patterns = []
+        max_score = 0
+        for r in fraud["results"]:
+            inv = next((i for i in invoices if str(i.get("invoice_id")) == r["invoice_id"]), {})
+            inv_supplier = str(inv.get("supplier_gstin", "")).upper()
+            inv_buyer = str(inv.get("buyer_gstin", "")).upper()
+            if inv_supplier == gstin.upper() or inv_buyer == gstin.upper():
+                for hit in r["risk_breakdown"]:
+                    detected_patterns.append(hit)
+                max_score = max(max_score, r["risk_score"])
+        
+        # Deduplicate patterns by rule_id
+        seen_rules = {}
+        for p in detected_patterns:
+            rid = p["rule_id"]
+            if rid not in seen_rules or p["points"] > seen_rules[rid]["points"]:
+                seen_rules[rid] = p
+        
+        final_score = max(max_score, node.get("risk_score", 0))
+        if node.get("in_circular_trade"):
+            final_score = max(final_score, 70)
+        final_score = min(final_score, 100)
+        
+        if final_score <= 20:     risk_level = "LOW"
+        elif final_score <= 50:   risk_level = "MEDIUM"
+        elif final_score <= 80:   risk_level = "HIGH"
+        else:                     risk_level = "CRITICAL"
+        
+        connected = list(
+            graph["adjacency"].get(gstin.upper(), set()) |
+            graph["reverse_adj"].get(gstin.upper(), set())
+        )
+        
+        return {
+            "entity_id": gstin.upper(),
+            "risk_score": final_score,
+            "risk_level": risk_level,
+            "detected_patterns": list(seen_rules.values()),
+            "connected_entities": connected,
+            "cycle_detected": node.get("in_circular_trade", False),
+            "total_invoices": len(entity_invoices),
+            "total_supplied": node.get("total_supplied", 0),
+            "total_received": node.get("total_received", 0),
+        }
+
+
+@app.get("/api/fraud/cycles")
+async def get_all_cycles(user: dict = Depends(verify_token)):
+    """Get all detected circular trading loops."""
+    async with httpx.AsyncClient() as client:
+        graph, _ = await build_full_graph(client, SUPABASE_URL, SUPABASE_HEADERS)
+        return {
+            "cycles": graph.get("cycles", []),
+            "total_cycles": len(graph.get("cycles", [])),
+            "involved_gstins": list(set(
+                gstin for cycle in graph.get("cycles", []) for gstin in cycle
+            ))
+        }
 
 
 # ── Static Files (Frontend) ────────────────────────────────────────────────

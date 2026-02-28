@@ -9,6 +9,7 @@ export function initSidebar(activePage) {
 
     const navItems = [
         { name: 'Dashboard', href: 'dashboard.html', icon: '📊' },
+        { name: 'Graph Intel', href: 'graph.html', icon: '🕸️' },
         { name: 'Analytics', href: 'analytics.html', icon: '📈' },
         { name: 'Settings', href: 'settings.html', icon: '⚙️' }
     ];
